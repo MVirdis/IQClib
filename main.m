@@ -37,17 +37,26 @@ Gcl = connect(G,K,smb,{'v','p'},{'z','x1','x2','x3','x4'})
 %%
 yalmip('clear')
 
+% iqc1 = IQC_RRP(0.9,1,9,-10);
+% delta = Delta(1,1,1);
+% delta = delta.attachIQC(iqc1,1);
+% delta = delta.compile();
+
+% iqcp = IQC_L2G(0.1416,4,1);
+% deltap = Delta(4,1,1);
+% deltap = deltap.attachIQC(iqcp,1);
+% deltap = deltap.compile();
+
 iqc1 = IQC_RRP(0.9,1,9,-10);
-delta = Delta(1,1,1);
+% iqc2 = IQC_NBN(7,4,1);
+iqc2 = IQC_GEN(4,1);
+delta = Delta(5,2,2);
 delta = delta.attachIQC(iqc1,1);
+delta = delta.attachIQC(iqc2,2);
 delta = delta.compile();
 
-iqcp = IQC_L2G(0.1416,4,1);
-deltap = Delta(4,1,1);
-deltap = deltap.attachIQC(iqcp,1);
-deltap = deltap.compile();
-
-problem = IQCProblem(Gcl(1,1),delta,Gcl(2:5,1),Gcl(1,2),Gcl(2:5,2),deltap);
+% problem = IQCProblem(Gcl(1,1),delta,Gcl(2:5,1),Gcl(1,2),Gcl(2:5,2),deltap);
+problem = IQCProblem(Gcl,delta);
 problem = problem.compile();
 problem.solve()
 
