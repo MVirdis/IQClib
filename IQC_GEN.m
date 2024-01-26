@@ -3,11 +3,23 @@ classdef IQC_GEN < IQCDescriptor
     %   
 
     methods
-        function obj = IQC_GEN(nz, nv)
-            %IQC_GEN Construct an instance of this class
+        function obj = IQC_GEN(varargin)
+            %IQC_GEN(nz, nv) or IQC_GEN(nz, nv, Ts)
             
+            % Unpack args
+            if nargin < 2
+                error('IQC_GEN not enough inputs');
+            end
+            nz = varargin{1};
+            nv = varargin{2};
             mustBePositive(nz);
             mustBePositive(nv);
+            if nargin >= 3
+                Ts = varargin{3};
+                mustBeNonnegative(Ts);
+            else
+                Ts = 0;
+            end
 
             % Construct and assign params
             obj = obj@IQCDescriptor();
@@ -15,6 +27,7 @@ classdef IQC_GEN < IQCDescriptor
             obj.nz = nz;
             obj.nu = 0; nu = 0;
             obj.rho = 0; rho = 0;
+            obj.Ts = Ts;
 
             % Assign decision variables
             obj.P11 = sdpvar(nz,nz,'symmetric','real');
@@ -23,9 +36,9 @@ classdef IQC_GEN < IQCDescriptor
             obj.P22 = sdpvar(nv,nv,'symmetric','real');
 
             % Instantiate Psi
-            [psi,~,~,~,~] = basisTF(nu,rho,nz);
+            [psi,~,~,~,~] = basisTF(nu,rho,nz,Ts);
             obj.psi11 = psi;
-            [psi,~,~,~,~] = basisTF(nu,rho,nv);
+            [psi,~,~,~,~] = basisTF(nu,rho,nv,Ts);
             obj.psi22 = psi;
 
             % Construct additional constraints

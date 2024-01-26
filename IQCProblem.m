@@ -19,6 +19,9 @@ classdef IQCProblem
         Delta
         DeltaP
 
+        % Time constant
+        Ts
+
         % Whether performance is included
         perf
         compiled
@@ -33,12 +36,15 @@ classdef IQCProblem
             obj.perf = false;
             obj.compiled = false;
 
+            obj.Ts = 0;
+
             % Unpack input arguments
             % Gvz, Delta
             % Gvz, Delta, Gve, Gwz, Gwe, DeltaP
             if nargin == 2
                 Gvz = varargin{1};
                 obj.Delta = varargin{2};
+                obj.Ts = obj.Delta.Ts;
             elseif nargin == 6
                 Gvz = varargin{1};
                 obj.Delta = varargin{2};
@@ -47,16 +53,27 @@ classdef IQCProblem
                 Gwe = varargin{5};
                 obj.DeltaP = varargin{6};
                 obj.perf = true;
+                if obj.Delta.Ts ~= obj.DeltaP.Ts
+                    error('Time constants of Delta and DeltaP must be the same');
+                else
+                    obj.Ts = obj.Delta.Ts;
+                end
             elseif nargin < 2 || (nargin > 2 && nargin < 6)
                 error('Not enough input arguments');
             end
 
             % Make sure everything is in ss
             Gvz_ = ss(Gvz);
+            if Gvz_.Ts ~= obj.Ts
+                error('Time constant of LTI system doesn''t match');
+            end
             if obj.perf
                 Gve_ = ss(Gve);
                 Gwz_ = ss(Gwz);
                 Gwe_ = ss(Gwe);
+                if ~(Gvz_.Ts == Gve_.Ts && Gvz_.Ts == Gwz_.Ts && Gvz_.Ts == Gwe_.Ts)
+                    error('Partitioned LTI systems have different time constants');
+                end
             end
 
             % Infer dimensions
@@ -73,7 +90,8 @@ classdef IQCProblem
                 G = Gvz_;
             end
             eA = eig(G.A);
-            if ~all(real(eA) < 0)
+            if (obj.Ts == 0 && ~all(real(eA) < 0)) || ...
+               (obj.Ts > 0 && ~all(abs(eA) < 1))
                 error('G must be strictly stable for IQC analysis');
             end
 
@@ -113,9 +131,15 @@ classdef IQCProblem
             nA = length(G.A);
             M = vstack_IO(G.A,G.B,G.C,G.D);
             X = sdpvar(nA,nA,'symmetric','real');
-            T = blkdiag([zeros(nA),X;X,zeros(nA)], ...
-                        [obj.Delta.P11,obj.Delta.P12; ...
-                         obj.Delta.P21,obj.Delta.P22]);
+            if obj.Ts == 0
+                T = blkdiag([zeros(nA),X;X,zeros(nA)], ...
+                            [obj.Delta.P11,obj.Delta.P12; ...
+                             obj.Delta.P21,obj.Delta.P22]);
+            else
+                T = blkdiag([-X,zeros(nA);zeros(nA),X], ...
+                            [obj.Delta.P11,obj.Delta.P12; ...
+                             obj.Delta.P21,obj.Delta.P22]);
+            end
             
             obj.constr = [obj.constr, (M'*T*M <= 0)];
 
@@ -136,11 +160,19 @@ classdef IQCProblem
             nA = length(G.A);
             M = vstack_IO(G.A,G.B,G.C,G.D);
             X = sdpvar(nA,nA,'symmetric','real');
-            T = blkdiag([zeros(nA),X;X,zeros(nA)], ...
-                        [obj.Delta.P11,obj.Delta.P12; ...
-                         obj.Delta.P21,obj.Delta.P22],...
-                        [obj.DeltaP.P11,obj.DeltaP.P12; ...
-                         obj.DeltaP.P21,obj.DeltaP.P22]);
+            if obj.Ts == 0
+                T = blkdiag([zeros(nA),X;X,zeros(nA)], ...
+                            [obj.Delta.P11,obj.Delta.P12; ...
+                             obj.Delta.P21,obj.Delta.P22],...
+                            [obj.DeltaP.P11,obj.DeltaP.P12; ...
+                             obj.DeltaP.P21,obj.DeltaP.P22]);
+            else
+                T = blkdiag([-X,zeros(nA);zeros(nA),X], ...
+                            [obj.Delta.P11,obj.Delta.P12; ...
+                             obj.Delta.P21,obj.Delta.P22],...
+                            [obj.DeltaP.P11,obj.DeltaP.P12; ...
+                             obj.DeltaP.P21,obj.DeltaP.P22]);
+            end
             
             obj.constr = [obj.constr, (M'*T*M <= 0)];
 

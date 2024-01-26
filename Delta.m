@@ -18,6 +18,9 @@ classdef Delta
         psi11
         psi22
 
+        % Time constant
+        Ts
+
         % SDP constraints
         constr
 
@@ -37,6 +40,11 @@ classdef Delta
 
         function obj = attachIQC(obj, IQC, opId)
             mustBePositive(opId);
+            if isempty(obj.Ts)
+                obj.Ts = IQC.Ts;
+            elseif IQC.Ts ~= obj.Ts
+                error('The time constant of the attached IQC should be the same as the time constant of the operator');
+            end
             if isempty(obj.IQCDescriptors{opId})
                 obj.IQCDescriptors{opId} = {IQC};
             else

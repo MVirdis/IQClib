@@ -47,16 +47,17 @@ yalmip('clear')
 % deltap = deltap.attachIQC(iqcp,1);
 % deltap = deltap.compile();
 
-iqc1 = IQC_RRP(0.9,1,9,-10);
-% iqc2 = IQC_NBN(7,4,1);
-iqc2 = IQC_GEN(4,1);
+Ts = 0.01;
+iqc1 = IQC_RRP(0.9,1,9,-10,Ts);
+iqc2 = IQC_NBN(6.9,4,1, Ts);
+% iqc2 = IQC_GEN(4,1, Ts);
 delta = Delta(5,2,2);
 delta = delta.attachIQC(iqc1,1);
 delta = delta.attachIQC(iqc2,2);
 delta = delta.compile();
 
 % problem = IQCProblem(Gcl(1,1),delta,Gcl(2:5,1),Gcl(1,2),Gcl(2:5,2),deltap);
-problem = IQCProblem(Gcl,delta);
+problem = IQCProblem(c2d(Gcl,Ts,'zoh'),delta);
 problem = problem.compile();
 problem.solve()
 

@@ -19,6 +19,9 @@ classdef IQCDescriptor
         psi11   % tf object
         psi22   % tf object
 
+        % Time constant
+        Ts
+
         % SDP constraints
         constr
     end
